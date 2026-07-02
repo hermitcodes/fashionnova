@@ -1,0 +1,675 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}AI Style Assistant - FashionNova{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Floating Widget Styles */
+    .ai-floating-widget {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        z-index: 1000;
+    }
+    
+    .widget-toggle {
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        cursor: pointer;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.3s ease;
+        position: relative;
+    }
+    
+    .widget-toggle:hover {
+        transform: scale(1.1);
+        box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+    }
+    
+    .widget-toggle i {
+        font-size: 28px;
+        color: white;
+    }
+    
+    .widget-notification {
+        position: absolute;
+        top: -5px;
+        right: -5px;
+        background: #ff6b6b;
+        color: white;
+        border-radius: 50%;
+        width: 20px;
+        height: 20px;
+        font-size: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        animation: pulse 2s infinite;
+    }
+    
+    @keyframes pulse {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.2); }
+        100% { transform: scale(1); }
+    }
+    
+    .widget-content {
+        position: fixed;
+        bottom: 100px;
+        right: 20px;
+        width: 400px;
+        height: 600px;
+        background: white;
+        border-radius: 20px;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        display: none;
+        flex-direction: column;
+        overflow: hidden;
+        animation: slideIn 0.3s ease;
+        z-index: 1000;
+    }
+    
+    @keyframes slideIn {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    .widget-content.active {
+        display: flex;
+    }
+    
+    .widget-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 15px 20px;
+        cursor: move;
+    }
+    
+    .widget-header h5 {
+        margin: 0;
+        font-size: 1.1rem;
+    }
+    
+    .widget-header .close-btn {
+        color: white;
+        cursor: pointer;
+        font-size: 20px;
+        transition: opacity 0.3s;
+    }
+    
+    .widget-header .close-btn:hover {
+        opacity: 0.8;
+    }
+    
+    .widget-body {
+        flex: 1;
+        overflow-y: auto;
+        padding: 15px;
+        background: #f8f9fa;
+    }
+    
+    .chat-messages {
+        height: 350px;
+        overflow-y: auto;
+        background: white;
+        border-radius: 15px;
+        padding: 15px;
+        margin-bottom: 15px;
+    }
+    
+    .message {
+        margin-bottom: 15px;
+        display: flex;
+        animation: fadeIn 0.3s ease;
+    }
+    
+    .message.user {
+        justify-content: flex-end;
+    }
+    
+    .message.bot {
+        justify-content: flex-start;
+    }
+    
+    .message-content {
+        max-width: 85%;
+        padding: 10px 15px;
+        border-radius: 18px;
+        position: relative;
+        font-size: 0.9rem;
+    }
+    
+    .message.user .message-content {
+        background: linear-gradient(135deg, #ff6b6b 0%, #ff8e8e 100%);
+        color: white;
+    }
+    
+    .message.bot .message-content {
+        background: #f0f0f0;
+        color: #333;
+    }
+    
+    .upload-area {
+        border: 2px dashed #ddd;
+        border-radius: 10px;
+        padding: 20px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.3s;
+        background: white;
+        margin-bottom: 15px;
+    }
+    
+    .upload-area:hover {
+        border-color: #ff6b6b;
+        background: rgba(255, 107, 107, 0.05);
+    }
+    
+    .upload-area.drag-over {
+        border-color: #ff6b6b;
+        background: rgba(255, 107, 107, 0.1);
+    }
+    
+    .image-preview {
+        max-width: 150px;
+        margin: 10px auto;
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    
+    .quick-actions {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin: 10px 0;
+    }
+    
+    .quick-action-btn {
+        background: white;
+        border: 1px solid #ddd;
+        border-radius: 20px;
+        padding: 5px 12px;
+        font-size: 0.8rem;
+        cursor: pointer;
+        transition: all 0.3s;
+    }
+    
+    .quick-action-btn:hover {
+        background: #ff6b6b;
+        color: white;
+        border-color: #ff6b6b;
+    }
+    
+    .quick-action-btn.active {
+        background: #ff6b6b;
+        color: white;
+        border-color: #ff6b6b;
+    }
+    
+    .input-group {
+        margin-top: 10px;
+    }
+    
+    .input-group input {
+        font-size: 0.9rem;
+    }
+    
+    .input-group button {
+        padding: 8px 15px;
+    }
+    
+    .widget-footer {
+        padding: 15px;
+        background: white;
+        border-top: 1px solid #eee;
+    }
+    
+    .action-buttons {
+        display: flex;
+        gap: 10px;
+        margin-top: 10px;
+    }
+    
+    .action-buttons button {
+        flex: 1;
+        font-size: 0.8rem;
+        padding: 6px;
+    }
+    
+    .typing-indicator {
+        display: flex;
+        gap: 5px;
+        padding: 10px;
+    }
+    
+    .typing-indicator span {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: #999;
+        animation: typing 1.4s infinite;
+    }
+    
+    .typing-indicator span:nth-child(2) { animation-delay: 0.2s; }
+    .typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
+    
+    @keyframes typing {
+        0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+        30% { transform: translateY(-10px); opacity: 1; }
+    }
+    
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .loading-spinner {
+        display: inline-block;
+        width: 20px;
+        height: 20px;
+        border: 2px solid #f3f3f3;
+        border-top: 2px solid #ff6b6b;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+    }
+    
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+    
+    .form-select-sm {
+        font-size: 0.8rem;
+        padding: 4px 8px;
+    }
+    
+    @media (max-width: 768px) {
+        .widget-content {
+            width: 95%;
+            right: 2.5%;
+            left: 2.5%;
+            height: 80vh;
+            bottom: 80px;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Floating Widget -->
+<div class="ai-floating-widget">
+    <div class="widget-toggle" id="widget-toggle">
+        <i class="fas fa-robot"></i>
+        <div class="widget-notification" id="widget-notification" style="display: none;">!</div>
+    </div>
+    
+    <div class="widget-content" id="widget-content">
+        <div class="widget-header d-flex justify-content-between align-items-center">
+            <h5><i class="fas fa-robot me-2"></i>AI Style Assistant</h5>
+            <span class="close-btn" id="widget-close">&times;</span>
+        </div>
+        
+        <div class="widget-body">
+            <!-- Chat Messages -->
+            <div class="chat-messages" id="chat-messages">
+                <div class="message bot">
+                    <div class="message-content">
+                        <i class="fas fa-robot me-2"></i>
+                        Hi! I'm your AI style assistant. Upload a photo of any clothing item, and I'll help you style it perfectly! ✨
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Upload Area -->
+            <div class="upload-area" id="upload-area">
+                <i class="fas fa-cloud-upload-alt fa-2x text-muted mb-2"></i>
+                <p class="mb-1 small">Upload clothing image</p>
+                <input type="file" id="image-upload" accept="image/*" style="display: none;">
+                <button class="btn btn-sm btn-outline-primary" onclick="document.getElementById('image-upload').click()">
+                    <i class="fas fa-upload me-1"></i>Choose
+                </button>
+            </div>
+            <div id="image-preview-container" class="text-center mt-2" style="display: none;">
+                <div class="image-preview">
+                    <img id="preview-image" src="" class="img-fluid" alt="Preview">
+                </div>
+                <button class="btn btn-sm btn-danger mt-1" id="remove-image">
+                    <i class="fas fa-trash me-1"></i>Remove
+                </button>
+            </div>
+            
+            <!-- Style Preferences -->
+            <div class="mt-2">
+                <label class="small fw-bold mb-1">Style:</label>
+                <div class="quick-actions">
+                    <button class="quick-action-btn" data-style="casual">👕 Casual</button>
+                    <button class="quick-action-btn" data-style="formal">👔 Formal</button>
+                    <button class="quick-action-btn" data-style="party">🎉 Party</button>
+                    <button class="quick-action-btn" data-style="work">💼 Work</button>
+                    <button class="quick-action-btn" data-style="sporty">🏃 Sporty</button>
+                </div>
+            </div>
+            
+            <div class="mt-2">
+                <label class="small fw-bold mb-1">Occasion:</label>
+                <select class="form-select form-select-sm" id="occasion-select">
+                    <option value="">Select occasion (optional)</option>
+                    <option value="casual outing">Casual Outing</option>
+                    <option value="date night">Date Night</option>
+                    <option value="business meeting">Business Meeting</option>
+                    <option value="wedding">Wedding</option>
+                    <option value="beach">Beach/Vacation</option>
+                    <option value="gym">Gym/Workout</option>
+                </select>
+            </div>
+            
+            <!-- Input Area -->
+            <div class="input-group input-group-sm mt-2">
+                <input type="text" class="form-control" id="chat-input" 
+                       placeholder="Ask for styling advice...">
+                <button class="btn btn-primary btn-sm" id="send-message">
+                    <i class="fas fa-paper-plane"></i>
+                </button>
+            </div>
+            
+            <!-- Loading Indicator -->
+            <div id="loading-indicator" style="display: none;" class="mt-2">
+                <div class="typing-indicator">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </div>
+            </div>
+            
+            <!-- Action Buttons -->
+            <div class="action-buttons">
+                <button class="btn btn-sm btn-outline-primary" id="get-recommendations-btn">
+                    <i class="fas fa-lightbulb me-1"></i>Recommend
+                </button>
+                <button class="btn btn-sm btn-outline-success" id="clear-chat-btn">
+                    <i class="fas fa-trash me-1"></i>Clear
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let conversationHistory = [];
+let currentProductAnalysis = '';
+let selectedStyle = '';
+let selectedOccasion = '';
+
+document.addEventListener('DOMContentLoaded', function() {
+    const widgetToggle = document.getElementById('widget-toggle');
+    const widgetContent = document.getElementById('widget-content');
+    const widgetClose = document.getElementById('widget-close');
+    const uploadArea = document.getElementById('upload-area');
+    const imageUpload = document.getElementById('image-upload');
+    const imagePreviewContainer = document.getElementById('image-preview-container');
+    const previewImage = document.getElementById('preview-image');
+    const chatMessages = document.getElementById('chat-messages');
+    const chatInput = document.getElementById('chat-input');
+    const sendBtn = document.getElementById('send-message');
+    const loadingIndicator = document.getElementById('loading-indicator');
+    const getRecommendationsBtn = document.getElementById('get-recommendations-btn');
+    const clearChatBtn = document.getElementById('clear-chat-btn');
+    
+    // Toggle widget
+    widgetToggle.addEventListener('click', () => {
+        widgetContent.classList.toggle('active');
+        if (widgetContent.classList.contains('active')) {
+            document.getElementById('widget-notification').style.display = 'none';
+        }
+    });
+    
+    widgetClose.addEventListener('click', () => {
+        widgetContent.classList.remove('active');
+    });
+    
+    // Image upload handling
+    if (uploadArea) {
+        uploadArea.addEventListener('click', () => imageUpload.click());
+        
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('drag-over');
+        });
+        
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('drag-over');
+        });
+        
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('drag-over');
+            const file = e.dataTransfer.files[0];
+            if (file && file.type.startsWith('image/')) {
+                handleImageUpload(file);
+            }
+        });
+    }
+    
+    if (imageUpload) {
+        imageUpload.addEventListener('change', (e) => {
+            if (e.target.files.length) {
+                handleImageUpload(e.target.files[0]);
+            }
+        });
+    }
+    
+    // Quick style buttons
+    document.querySelectorAll('.quick-action-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            selectedStyle = this.dataset.style;
+            document.querySelectorAll('.quick-action-btn').forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+            addMessage('bot', `Great! I'll consider "${selectedStyle}" style in my recommendations. ✨`);
+        });
+    });
+    
+    // Occasion select
+    const occasionSelect = document.getElementById('occasion-select');
+    if (occasionSelect) {
+        occasionSelect.addEventListener('change', () => {
+            selectedOccasion = occasionSelect.value;
+            if (selectedOccasion) {
+                addMessage('bot', `Perfect for a ${selectedOccasion}! I'll keep that in mind. 👗`);
+            }
+        });
+    }
+    
+    // Send message
+    sendBtn.addEventListener('click', sendMessage);
+    chatInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') sendMessage();
+    });
+    
+    // Get recommendations button
+    getRecommendationsBtn.addEventListener('click', getStylingRecommendations);
+    
+    // Clear chat
+    clearChatBtn.addEventListener('click', () => {
+        chatMessages.innerHTML = `
+            <div class="message bot">
+                <div class="message-content">
+                    <i class="fas fa-robot me-2"></i>
+                    Chat cleared! How can I help you style your outfit today? 👗✨
+                </div>
+            </div>
+        `;
+        conversationHistory = [];
+    });
+    
+    function handleImageUpload(file) {
+        const formData = new FormData();
+        formData.append('image', file);
+        
+        // Show preview
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            previewImage.src = e.target.result;
+            if (imagePreviewContainer) imagePreviewContainer.style.display = 'block';
+            if (uploadArea) uploadArea.style.display = 'none';
+        };
+        reader.readAsDataURL(file);
+        
+        // Show loading
+        showLoading(true);
+        addMessage('bot', 'Analyzing your image... 🤔');
+        
+        // Send to server
+        fetch('/api/analyze-image/', {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': getCSRFToken(),
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            showLoading(false);
+            if (data.success) {
+                currentProductAnalysis = data.analysis;
+                addMessage('bot', `✅ I've analyzed your item!\n\n${data.analysis}\n\nWhat would you like to know about styling it?`);
+                showNotification();
+            } else {
+                addMessage('bot', `Sorry, I couldn't analyze that image. ${data.error || 'Please try again with a clearer photo.'}`);
+            }
+        })
+        .catch(error => {
+            showLoading(false);
+            addMessage('bot', 'Sorry, something went wrong. Please try again.');
+            console.error('Error:', error);
+        });
+    }
+    
+    function sendMessage() {
+        const question = chatInput.value.trim();
+        if (!question) return;
+        
+        addMessage('user', question);
+        chatInput.value = '';
+        
+        showLoading(true);
+        
+        fetch('/api/chat-styling/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCSRFToken(),
+            },
+            body: JSON.stringify({
+                question: question,
+                history: conversationHistory.join('\n')
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            showLoading(false);
+            if (data.success) {
+                addMessage('bot', data.response);
+                conversationHistory.push(`User: ${question}`);
+                conversationHistory.push(`Assistant: ${data.response}`);
+            } else {
+                addMessage('bot', `Sorry, I couldn't process that. ${data.error || 'Please try again.'}`);
+            }
+        })
+        .catch(error => {
+            showLoading(false);
+            addMessage('bot', 'Sorry, something went wrong. Please try again.');
+        });
+    }
+    
+    function getStylingRecommendations() {
+        if (!currentProductAnalysis && !selectedStyle) {
+            addMessage('bot', 'Please upload an image of a clothing item first so I can give you specific advice! 📸');
+            return;
+        }
+        
+        showLoading(true);
+        addMessage('bot', 'Putting together some style recommendations for you... ✨');
+        
+        fetch('/api/get-styling/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCSRFToken(),
+            },
+            body: JSON.stringify({
+                product_description: currentProductAnalysis,
+                occasion: selectedOccasion,
+                style_preference: selectedStyle
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            showLoading(false);
+            if (data.success) {
+                addMessage('bot', `🎨 **Styling Recommendations**\n\n${data.recommendations}`);
+            } else {
+                addMessage('bot', `Sorry, I couldn't generate recommendations. ${data.error || 'Please try again.'}`);
+            }
+        })
+        .catch(error => {
+            showLoading(false);
+            addMessage('bot', 'Sorry, something went wrong.');
+        });
+    }
+    
+    function addMessage(sender, text) {
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `message ${sender}`;
+        messageDiv.innerHTML = `
+            <div class="message-content">
+                ${sender === 'bot' ? '<i class="fas fa-robot me-2"></i>' : ''}
+                ${text.replace(/\n/g, '<br>')}
+            </div>
+        `;
+        chatMessages.appendChild(messageDiv);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+    
+    function showLoading(show) {
+        loadingIndicator.style.display = show ? 'block' : 'none';
+    }
+    
+    function showNotification() {
+        if (!widgetContent.classList.contains('active')) {
+            document.getElementById('widget-notification').style.display = 'flex';
+            setTimeout(() => {
+                if (!widgetContent.classList.contains('active')) {
+                    document.getElementById('widget-notification').style.display = 'none';
+                }
+            }, 5000);
+        }
+    }
+    
+    function getCSRFToken() {
+        return document.querySelector('[name=csrfmiddlewaretoken]')?.value || 
+               document.cookie.split('; ').find(row => row.startsWith('csrftoken='))?.split('=')[1];
+    }
+});
+
+// Remove image handler
+document.getElementById('remove-image')?.addEventListener('click', function() {
+    document.getElementById('image-preview-container').style.display = 'none';
+    document.getElementById('upload-area').style.display = 'block';
+    document.getElementById('image-upload').value = '';
+    currentProductAnalysis = '';
+});
+</script>
+{% endblock %}

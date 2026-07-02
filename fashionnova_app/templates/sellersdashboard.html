@@ -1,0 +1,833 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Seller Dashboard - FashionNova{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Dashboard Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{% url 'home' %}">Home</a></li>
+                    <li class="breadcrumb-item active">Seller Dashboard</li>
+                </ol>
+            </nav>
+            
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h1 class="mb-2">Seller Dashboard</h1>
+                    <p class="text-muted mb-0">
+                        <i class="fas fa-store me-2"></i>
+                        Welcome back, {{ request.user.sellerprofile.store_name }}
+                    </p>
+                </div>
+                <div class="dropdown">
+                    <button class="btn btn-primary dropdown-toggle" type="button" 
+                            data-bs-toggle="dropdown">
+                        <i class="fas fa-plus me-2"></i>Quick Actions
+                    </button>
+                    <ul class="dropdown-menu">
+                        <li>
+                            <a class="dropdown-item" href="{% url 'add_product' %}">
+                                <i class="fas fa-plus-circle me-2"></i>Add New Product
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item" href="#manage-inventory">
+                                <i class="fas fa-boxes me-2"></i>Manage Inventory
+                            </a>
+                        </li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li>
+                            <a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#store-settings">
+                                <i class="fas fa-cog me-2"></i>Store Settings
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Dashboard Stats -->
+    <div class="row mb-4">
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card stat-card revenue-card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-muted mb-2">Total Revenue</h6>
+                            <h3 class="mb-0" id="total-revenue">Ksh {{ total_revenue|floatformat:0 }}</h3>
+                            <small class="text-success">
+                                <i class="fas fa-arrow-up me-1"></i>12.5% from last month
+                            </small>
+                        </div>
+                        <div class="stat-icon">
+                            <i class="fas fa-money-bill-wave fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card stat-card orders-card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-muted mb-2">Total Orders</h6>
+                            <h3 class="mb-0" id="total-orders">{{ total_orders }}</h3>
+                            <small class="text-success">
+                                <i class="fas fa-arrow-up me-1"></i>8.2% from last month
+                            </small>
+                        </div>
+                        <div class="stat-icon">
+                            <i class="fas fa-shopping-bag fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card stat-card products-card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-muted mb-2">Total Products</h6>
+                            <h3 class="mb-0" id="total-products">{{ total_products }}</h3>
+                            <small class="text-muted" id="active-products">{{ active_products }} active</small>
+                        </div>
+                        <div class="stat-icon">
+                            <i class="fas fa-tshirt fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card stat-card rating-card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-muted mb-2">Store Rating</h6>
+                            <h3 class="mb-0">{{ store_rating|floatformat:1 }}/5.0</h3>
+                            <small class="text-muted">{{ total_reviews }} reviews</small>
+                        </div>
+                        <div class="stat-icon">
+                            <i class="fas fa-star fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <!-- Left Column: Quick Actions & Recent Orders -->
+        <div class="col-lg-8">
+            <!-- Recent Orders -->
+            <div class="card mb-4">
+                <div class="card-header bg-light">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0"><i class="fas fa-history me-2"></i>Recent Orders</h5>
+                        <a href="{% url 'seller_orders' %}" class="btn btn-sm btn-outline-primary">
+                            View All <i class="fas fa-arrow-right ms-1"></i>
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <!--<tr>
+                                    <th>Order ID</th>
+                                    <th>Customer</th>
+                                    <th>Date</th>
+                                    <th>Amount</th>
+                                    <th>Status</th>
+                                    <th>Action</th>
+                                </tr>-->
+                            </thead>
+                            <tbody id="recent-orders-tbody">
+                                {% for order in recent_orders %}
+                                <tr>
+                                    <td>
+                                        <a href="{% url 'order_detail' order.id %}" 
+                                           class="text-primary text-decoration-none">
+                                            #{{ order.order_number|slice:"-8:" }}
+                                        </a>
+                                    </td>
+                                    <td>{{ order.user.username|truncatechars:20 }}</td>
+                                    <td>{{ order.created_at|date:"M d" }}</td>
+                                    <td>Ksh {{ order.total }}</td>
+                                    <td>
+                                        <span class="badge {% if order.status == 'delivered' %}bg-success
+                                                          {% elif order.status == 'shipped' %}bg-primary
+                                                          {% elif order.status == 'processing' %}bg-info
+                                                          {% elif order.status == 'pending' %}bg-warning
+                                                          {% else %}bg-danger{% endif %}">
+                                            {{ order.get_status_display }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-sm btn-outline-primary update-status-btn" 
+                                                onclick="updateOrderStatus({{ order.id }})">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="6" class="text-center py-4">
+                                        <i class="fas fa-inbox fa-2x text-muted mb-3"></i>
+                                        <!--<p class="text-muted mb-0">No orders yet</p>-->
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Product Management -->
+            <div class="card">
+                <div class="card-header bg-light">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0"><i class="fas fa-boxes me-2"></i>Product Management</h5>
+                        <a href="{% url 'add_product' %}" class="btn btn-sm btn-primary">
+                            <i class="fas fa-plus me-1"></i>Add Product
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <div class="input-group">
+                                <span class="input-group-text">
+                                    <i class="fas fa-search"></i>
+                                </span>
+                                <input type="text" class="form-control" id="search-products" 
+                                       placeholder="Search products...">
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <select class="form-select" id="category-filter">
+                                <option value="">All Categories</option>
+                                {% for category in categories %}
+                                <option value="{{ category.id }}">{{ category.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <select class="form-select" id="status-filter">
+                                <option value="">All Status</option>
+                                <option value="active">Active</option>
+                                <option value="inactive">Inactive</option>
+                                <option value="low_stock">Low Stock</option>
+                                <option value="out_of_stock">Out of Stock</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="table-responsive">
+                        <table class="table table-hover" id="products-table">
+                            <thead>
+                                <tr>
+                                    <th width="60">
+                                        <input type="checkbox" id="select-all-products">
+                                    </th>
+                                    <th>Product</th>
+                                    <th>Category</th>
+                                    <th>Price</th>
+                                    <th>Stock</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="products-tbody">
+                                {% for product in recent_products %}
+                                <tr id="product-{{ product.id }}">
+                                    <td>
+                                        <input type="checkbox" class="product-select" 
+                                               value="{{ product.id }}">
+                                    </td>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <div class="flex-shrink-0 me-3">
+                                                {% if product.image %}
+                                                <img src="{{ product.image.url }}" 
+                                                     alt="{{ product.name }}"
+                                                     class="img-thumbnail" 
+                                                     width="50"
+                                                     onerror="this.src='{% static 'images/products/default-product.jpg' %}'">
+                                                {% else %}
+                                                <img src="{% static 'images/products/default-product.jpg' %}" 
+                                                     alt="{{ product.name }}"
+                                                     class="img-thumbnail" 
+                                                     width="50">
+                                                {% endif %}
+                                            </div>
+                                            <div class="flex-grow-1">
+                                                <h6 class="mb-1">{{ product.name|truncatechars:30 }}</h6>
+                                                <small class="text-muted">SKU: {{ product.sku|default:"N/A" }}</small>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>{{ product.category.name }}</td>
+                                    <td>
+                                        <div>
+                                            {% if product.discount_price %}
+                                            <span class="text-decoration-line-through text-muted small">
+                                                Ksh {{ product.price }}
+                                            </span><br>
+                                            <strong class="text-primary">Ksh {{ product.discount_price }}</strong>
+                                            {% else %}
+                                            <strong class="text-primary">Ksh {{ product.price }}</strong>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="stock-info">
+                                            <div class="progress" style="height: 6px;">
+                                                <div class="progress-bar {% if product.stock > 20 %}bg-success
+                                                                       {% elif product.stock > 10 %}bg-warning
+                                                                       {% else %}bg-danger{% endif %}" 
+                                                     style="width: {% widthratio product.stock product.low_stock_threshold|default:10 100 %}%">
+                                                </div>
+                                            </div>
+                                            <small>{{ product.stock }} units</small>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        {% if product.is_active %}
+                                        <span class="badge bg-success">Active</span>
+                                        {% else %}
+                                        <span class="badge bg-danger">Inactive</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm" role="group">
+                                            <button class="btn btn-outline-primary edit-product-btn" 
+                                                    data-product-id="{{ product.id }}">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                            <button class="btn btn-outline-info view-product-btn" 
+                                                    onclick="window.open('{% url 'product_detail' product.slug %}', '_blank')">
+                                                <i class="fas fa-eye"></i>
+                                            </button>
+                                            {% if product.is_active %}
+                                            <button class="btn btn-outline-warning toggle-product-btn" 
+                                                    data-product-id="{{ product.id }}" 
+                                                    data-action="deactivate">
+                                                <i class="fas fa-ban"></i>
+                                            </button>
+                                            {% else %}
+                                            <button class="btn btn-outline-success toggle-product-btn" 
+                                                    data-product-id="{{ product.id }}" 
+                                                    data-action="activate">
+                                                <i class="fas fa-check"></i>
+                                            </button>
+                                            {% endif %}
+                                            <button class="btn btn-outline-danger delete-product-btn" 
+                                                    data-product-id="{{ product.id }}">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr id="no-products-row">
+                                    <td colspan="7" class="text-center py-4">
+                                        <i class="fas fa-box-open fa-2x text-muted mb-3"></i>
+                                        <p class="text-muted mb-2">No products yet</p>
+                                        <a href="{% url 'add_product' %}" class="btn btn-primary btn-sm">
+                                            <i class="fas fa-plus me-1"></i>Add Your First Product
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <!-- Bulk Actions -->
+                    <div class="d-flex justify-content-between align-items-center mt-3 pt-3 border-top">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="select-all">
+                            <label class="form-check-label" for="select-all">
+                                Select All
+                            </label>
+                        </div>
+                        <div class="btn-group">
+                            <button class="btn btn-outline-primary" id="activate-selected">
+                                <i class="fas fa-check me-2"></i>Activate
+                            </button>
+                            <button class="btn btn-outline-warning" id="deactivate-selected">
+                                <i class="fas fa-ban me-2"></i>Deactivate
+                            </button>
+                            <button class="btn btn-outline-danger" id="delete-selected">
+                                <i class="fas fa-trash me-2"></i>Delete
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Right Column: Store Info & Quick Stats -->
+        <div class="col-lg-4">
+            <!-- Store Information -->
+            <div class="card mb-4">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0"><i class="fas fa-store-alt me-2"></i>Store Information</h5>
+                </div>
+                <div class="card-body">
+                    <div class="store-info text-center mb-4">
+                        <div class="store-logo mb-3">
+                            {% if request.user.profile_picture %}
+                            <img src="{{ request.user.profile_picture.url }}" 
+                                 alt="{{ request.user.sellerprofile.store_name }}"
+                                 class="rounded-circle" 
+                                 width="80" height="80">
+                            {% else %}
+                            <div class="rounded-circle bg-light d-inline-flex align-items-center justify-content-center" 
+                                 style="width: 80px; height: 80px;">
+                                <i class="fas fa-store fa-2x text-muted"></i>
+                            </div>
+                            {% endif %}
+                        </div>
+                        <h4>{{ request.user.sellerprofile.store_name }}</h4>
+                        <p class="text-muted">
+                            <i class="fas fa-star text-warning"></i>
+                            {{ store_rating|floatformat:1 }} ({{ total_reviews }} reviews)
+                        </p>
+                    </div>
+                    
+                    <div class="store-details">
+                        <div class="detail-item mb-3">
+                            <small class="text-muted d-block mb-1">Store Description</small>
+                            <p class="mb-0">{{ request.user.sellerprofile.description|default:"No description added" }}</p>
+                        </div>
+                        
+                        <div class="detail-item mb-3">
+                            <small class="text-muted d-block mb-1">Contact Information</small>
+                            <p class="mb-1">
+                                <i class="fas fa-envelope me-2"></i>
+                                {{ request.user.email }}
+                            </p>
+                            <p class="mb-0">
+                                <i class="fas fa-phone me-2"></i>
+                                {{ request.user.phone|default:"Not provided" }}
+                            </p>
+                        </div>
+                        
+                        <div class="detail-item">
+                            <small class="text-muted d-block mb-1">Store Statistics</small>
+                            <div class="row">
+                                <div class="col-6">
+                                    <div class="text-center p-2">
+                                        <h6 class="mb-1">{{ visitor_count }}</h6>
+                                        <small class="text-muted">Visitors</small>
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="text-center p-2">
+                                        <h6 class="mb-1">{{ conversion_rate }}%</h6>
+                                        <small class="text-muted">Conversion</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="d-grid gap-2 mt-4">
+                        <a href="{% url 'profile' %}" class="btn btn-outline-primary">
+                            <i class="fas fa-edit me-2"></i>Edit Store Profile
+                        </a>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Quick Stats -->
+            <div class="card mb-4">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0"><i class="fas fa-chart-line me-2"></i>Quick Stats</h5>
+                </div>
+                <div class="card-body">
+                    <div class="quick-stats">
+                        <div class="stat-item mb-3">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span>Today's Revenue</span>
+                                <strong class="text-success">Ksh {{ today_revenue }}</strong>
+                            </div>
+                            <div class="progress" style="height: 5px;">
+                                <div class="progress-bar bg-success" style="width: 75%"></div>
+                            </div>
+                        </div>
+                        
+                        <div class="stat-item mb-3">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span>Pending Orders</span>
+                                <strong class="text-warning">{{ pending_orders_count }}</strong>
+                            </div>
+                            <div class="progress" style="height: 5px;">
+                                <div class="progress-bar bg-warning" style="width: 40%"></div>
+                            </div>
+                        </div>
+                        
+                        <div class="stat-item mb-3">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span>Low Stock Items</span>
+                                <strong class="text-danger">{{ low_stock_count }}</strong>
+                            </div>
+                            <div class="progress" style="height: 5px;">
+                                <div class="progress-bar bg-danger" style="width: 25%"></div>
+                            </div>
+                        </div>
+                        
+                        <div class="stat-item">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span>Customer Satisfaction</span>
+                                <strong class="text-info">{{ satisfaction_rate }}%</strong>
+                            </div>
+                            <div class="progress" style="height: 5px;">
+                                <div class="progress-bar bg-info" style="width: 90%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Recent Reviews -->
+            <div class="card">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0"><i class="fas fa-comments me-2"></i>Recent Reviews</h5>
+                </div>
+                <div class="card-body">
+                    {% for review in recent_reviews %}
+                    <div class="review-item mb-3 pb-3 {% if not forloop.last %}border-bottom{% endif %}">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <div>
+                                <h6 class="mb-1">{{ review.user.username }}</h6>
+                                <div class="rating small">
+                                    {% for i in "12345" %}
+                                    <i class="fas fa-star{% if forloop.counter <= review.rating %}{% else %}-o{% endif %} 
+                                       {% if forloop.counter <= review.rating %}text-warning{% else %}text-muted{% endif %}">
+                                    </i>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            <small class="text-muted">{{ review.created_at|timesince }} ago</small>
+                        </div>
+                        <p class="mb-2 small">{{ review.comment|truncatechars:80 }}</p>
+                        <a href="{% url 'product_detail' review.product.slug %}" 
+                           class="small text-decoration-none">
+                            {{ review.product.name|truncatechars:30 }}
+                        </a>
+                    </div>
+                    {% empty %}
+                    <div class="text-center py-3">
+                        <i class="fas fa-comment-alt fa-2x text-muted mb-3"></i>
+                        <p class="text-muted mb-0">No reviews yet</p>
+                    </div>
+                    {% endfor %}
+                    
+                    {% if recent_reviews %}
+                    <div class="text-center mt-3">
+                        <a href="#" class="btn btn-sm btn-outline-primary">View All Reviews</a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Store Settings Modal (Keep this) -->
+<div class="modal fade" id="store-settings" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Store Settings</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="store-settings-form">
+                    <div class="mb-3">
+                        <label for="store-name" class="form-label">Store Name</label>
+                        <input type="text" class="form-control" id="store-name" 
+                               value="{{ request.user.sellerprofile.store_name }}">
+                    </div>
+                    <div class="mb-3">
+                        <label for="store-description" class="form-label">Store Description</label>
+                        <textarea class="form-control" id="store-description" rows="3">{{ request.user.sellerprofile.description }}</textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label for="notification-email" class="form-label">Notification Email</label>
+                        <input type="email" class="form-control" id="notification-email" 
+                               value="{{ request.user.email }}">
+                    </div>
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" id="email-notifications" checked>
+                        <label class="form-check-label" for="email-notifications">
+                            Receive email notifications for new orders
+                        </label>
+                    </div>
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" id="low-stock-alerts" checked>
+                        <label class="form-check-label" for="low-stock-alerts">
+                            Receive low stock alerts
+                        </label>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" id="save-store-settings">Save Changes</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* Your existing styles */
+    .breadcrumb { background: none; padding: 0; }
+    .breadcrumb-item a { color: #ff6b6b; text-decoration: none; }
+    .stat-card { border: none; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); transition: transform 0.3s; }
+    .stat-card:hover { transform: translateY(-5px); }
+    .revenue-card { background: linear-gradient(135deg, #6b81e6ff 0%, #479deeff 100%); color: black; }
+    .orders-card { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; }
+    .products-card { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); color: white; }
+    .rating-card { background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); color: white; }
+    .stat-icon { opacity: 0.8; }
+    .store-info { padding: 20px; background: #f8f9fa; border-radius: 10px; }
+    .store-logo img { border: 4px solid white; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+    .detail-item { padding: 15px; background: white; border-radius: 8px; border: 1px solid #eee; }
+    .quick-stats .progress { margin-top: 5px; }
+    .review-item { transition: background-color 0.3s; }
+    .review-item:hover { background-color: #f8f9fa; }
+    .rating { color: #ffc107; }
+    .stock-info .progress { margin-bottom: 5px; }
+    .btn-primary { background: linear-gradient(135deg, #ff6b6b 0%, #ff8e8e 100%); border: none; }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(255,107,107,0.3); }
+    .btn-outline-primary { color: #ff6b6b; border-color: #ff6b6b; }
+    .btn-outline-primary:hover { background-color: #ff6b6b; border-color: #ff6b6b; }
+    .modal-header { border-bottom: 2px solid #ff6b6b; }
+    .form-control:focus, .form-select:focus { border-color: #ff6b6b; box-shadow: 0 0 0 0.2rem rgba(255,107,107,0.25); }
+    .form-check-input:checked { background-color: #ff6b6b; border-color: #ff6b6b; }
+</style>
+
+<script>
+// Get CSRF token
+function getCSRFToken() {
+    return document.querySelector('[name=csrfmiddlewaretoken]').value;
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Update order status
+    window.updateOrderStatus = function(orderId) {
+        // Create modal if it doesn't exist
+        if (!document.getElementById('updateStatusModal')) {
+            const modal = document.createElement('div');
+            modal.className = 'modal fade';
+            modal.id = 'updateStatusModal';
+            modal.innerHTML = `
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Update Order Status</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <form id="updateStatusForm">
+                                <div class="mb-3">
+                                    <label for="orderStatus" class="form-label">New Status</label>
+                                    <select class="form-select" id="orderStatus" required>
+                                        <option value="">Select Status</option>
+                                        <option value="pending">Pending</option>
+                                        <option value="processing">Processing</option>
+                                        <option value="shipped">Shipped</option>
+                                        <option value="delivered">Delivered</option>
+                                        <option value="cancelled">Cancelled</option>
+                                    </select>
+                                </div>
+                            </form>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                            <button type="button" class="btn btn-primary" onclick="submitStatusUpdate()">Update Status</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+        }
+        
+        // Store current order ID
+        window.currentOrderId = orderId;
+        
+        // Show modal
+        const modal = new bootstrap.Modal(document.getElementById('updateStatusModal'));
+        modal.show();
+    }
+    
+    // Submit status update
+    window.submitStatusUpdate = function() {
+        const status = document.getElementById('orderStatus').value;
+        
+        if (!status) {
+            showToast('Please select a status', 'error');
+            return;
+        }
+        
+        fetch(`/seller/update-order-status/${window.currentOrderId}/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getCSRFToken(),
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                status: status
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showToast('Order status updated successfully', 'success');
+                
+                // Close modal
+                const modal = bootstrap.Modal.getInstance(document.getElementById('updateStatusModal'));
+                modal.hide();
+                
+                // Reload page to show updated status
+                setTimeout(() => {
+                    location.reload();
+                }, 1500);
+            } else {
+                showToast(data.message || 'Failed to update order status', 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showToast('An error occurred. Please try again.', 'error');
+        });
+    }
+    
+    // Show toast notification
+    function showToast(message, type) {
+        const toast = document.createElement('div');
+        toast.className = `toast align-items-center text-white bg-${type === 'success' ? 'success' : 'danger'} border-0 position-fixed top-0 end-0 m-3`;
+        toast.setAttribute('role', 'alert');
+        toast.innerHTML = `
+            <div class="d-flex">
+                <div class="toast-body">
+                    <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'} me-2"></i>
+                    ${message}
+                </div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+            </div>
+        `;
+        
+        document.body.appendChild(toast);
+        const bsToast = new bootstrap.Toast(toast, { autohide: true, delay: 3000 });
+        bsToast.show();
+        
+        toast.addEventListener('hidden.bs.toast', () => toast.remove());
+    }
+    
+    // Bulk actions
+    const selectAllCheckbox = document.getElementById('select-all');
+    const productCheckboxes = document.querySelectorAll('.product-select');
+    
+    if (selectAllCheckbox) {
+        selectAllCheckbox.addEventListener('change', function() {
+            productCheckboxes.forEach(checkbox => {
+                checkbox.checked = selectAllCheckbox.checked;
+            });
+        });
+    }
+    
+    // Activate selected products
+    const activateSelectedBtn = document.getElementById('activate-selected');
+    if (activateSelectedBtn) {
+        activateSelectedBtn.addEventListener('click', function() {
+            const selectedProducts = getSelectedProducts();
+            if (selectedProducts.length > 0) {
+                if (confirm(`Are you sure you want to activate ${selectedProducts.length} product(s)?`)) {
+                    bulkAction(selectedProducts, 'activate');
+                }
+            } else {
+                showToast('Please select at least one product', 'error');
+            }
+        });
+    }
+    
+    // Deactivate selected products
+    const deactivateSelectedBtn = document.getElementById('deactivate-selected');
+    if (deactivateSelectedBtn) {
+        deactivateSelectedBtn.addEventListener('click', function() {
+            const selectedProducts = getSelectedProducts();
+            if (selectedProducts.length > 0) {
+                if (confirm(`Are you sure you want to deactivate ${selectedProducts.length} product(s)?`)) {
+                    bulkAction(selectedProducts, 'deactivate');
+                }
+            } else {
+                showToast('Please select at least one product', 'error');
+            }
+        });
+    }
+    
+    // Delete selected products
+    const deleteSelectedBtn = document.getElementById('delete-selected');
+    if (deleteSelectedBtn) {
+        deleteSelectedBtn.addEventListener('click', function() {
+            const selectedProducts = getSelectedProducts();
+            if (selectedProducts.length > 0) {
+                if (confirm(`Are you sure you want to delete ${selectedProducts.length} product(s)? This action cannot be undone.`)) {
+                    bulkAction(selectedProducts, 'delete');
+                }
+            } else {
+                showToast('Please select at least one product', 'error');
+            }
+        });
+    }
+    
+    function getSelectedProducts() {
+        const checkboxes = document.querySelectorAll('.product-select:checked');
+        return Array.from(checkboxes).map(cb => cb.value);
+    }
+    
+    function bulkAction(productIds, action) {
+        fetch(`/seller/bulk-product-action/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getCSRFToken(),
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                product_ids: productIds,
+                action: action
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showToast(`Successfully ${action}d ${productIds.length} product(s)`, 'success');
+                setTimeout(() => location.reload(), 1500);
+            } else {
+                showToast(data.message || `Failed to ${action} products`, 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showToast('An error occurred. Please try again.', 'error');
+        });
+    }
+});
+</script>
+{% endblock %}

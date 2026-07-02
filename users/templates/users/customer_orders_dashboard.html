@@ -1,0 +1,76 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}My Orders Dashboard - FashionNova{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-1">My Orders</h2>
+            <p class="text-muted mb-0">Track status updates from sellers in real time.</p>
+        </div>
+        <a href="{% url 'products' %}" class="btn btn-primary">
+            <i class="fas fa-shopping-bag me-2"></i>Continue Shopping
+        </a>
+    </div>
+
+    <div class="mb-4">
+        <a href="{% url 'customer_dashboard_orders' %}"
+           class="btn btn-sm {% if not status_filter %}btn-dark{% else %}btn-outline-dark{% endif %} me-2 mb-2">All</a>
+        <a href="{% url 'customer_dashboard_orders' %}?status=pending"
+           class="btn btn-sm {% if status_filter == 'pending' %}btn-warning{% else %}btn-outline-warning{% endif %} me-2 mb-2">Pending</a>
+        <a href="{% url 'customer_dashboard_orders' %}?status=processing"
+           class="btn btn-sm {% if status_filter == 'processing' %}btn-info{% else %}btn-outline-info{% endif %} me-2 mb-2">Processing</a>
+        <a href="{% url 'customer_dashboard_orders' %}?status=shipped"
+           class="btn btn-sm {% if status_filter == 'shipped' %}btn-primary{% else %}btn-outline-primary{% endif %} me-2 mb-2">Shipped</a>
+        <a href="{% url 'customer_dashboard_orders' %}?status=delivered"
+           class="btn btn-sm {% if status_filter == 'delivered' %}btn-success{% else %}btn-outline-success{% endif %} me-2 mb-2">Delivered</a>
+        <a href="{% url 'customer_dashboard_orders' %}?status=cancelled"
+           class="btn btn-sm {% if status_filter == 'cancelled' %}btn-danger{% else %}btn-outline-danger{% endif %} mb-2">Cancelled</a>
+    </div>
+
+    {% if orders %}
+        {% for order in orders %}
+            <div class="card mb-3">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <h5 class="mb-1">Order #{{ order.order_number }}</h5>
+                            <small class="text-muted">{{ order.created_at|date:"F d, Y g:i A" }}</small>
+                        </div>
+                        <div class="text-end">
+                            <span class="badge {% if order.status == 'delivered' %}bg-success{% elif order.status == 'shipped' %}bg-primary{% elif order.status == 'processing' %}bg-info{% elif order.status == 'pending' %}bg-warning{% else %}bg-danger{% endif %}">
+                                {{ order.get_status_display }}
+                            </span>
+                            <div class="fw-bold text-primary mt-2">Ksh {{ order.total|floatformat:2 }}</div>
+                        </div>
+                    </div>
+
+                    <div class="mt-3">
+                        {% for item in order.items.all|slice:":3" %}
+                            <div class="small text-muted">
+                                {{ item.product.name }} x {{ item.quantity }} - Ksh {{ item.get_total|floatformat:2 }}
+                            </div>
+                        {% endfor %}
+                        {% if order.items.count > 3 %}
+                            <div class="small text-muted">+{{ order.items.count|add:"-3" }} more item(s)</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mt-3">
+                        <a href="{% url 'order_detail' order.id %}" class="btn btn-sm btn-outline-primary">View details</a>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    {% else %}
+        <div class="card">
+            <div class="card-body text-center py-5">
+                <h5 class="mb-2">No orders yet</h5>
+                <p class="text-muted">Once you place an order, seller status updates will appear here.</p>
+            </div>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
